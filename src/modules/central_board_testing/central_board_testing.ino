@@ -17,7 +17,7 @@ typedef struct message_struct {
   char a[32];
   int b;
   float c;
-  String d;
+  char d[32];
   bool e;
 } message_struct;
 

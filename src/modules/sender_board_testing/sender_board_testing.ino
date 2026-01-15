@@ -7,7 +7,7 @@ typedef struct message_struct {
   char a[32];
   int b;
   float c;
-  String d;
+  char d[32];
   bool e;
 } struct_message;
 
@@ -40,7 +40,7 @@ void setup() {
   esp_now_init();
   esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
   esp_now_register_send_cb(OnDataSent);
-  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 2, NULL, 0);
 }
 
 void loop() {
@@ -50,7 +50,7 @@ void loop() {
     strcpy(received_data.a, "THIS IS A CHAR");
     received_data.b = random(1, 20);
     received_data.c = 1.2;
-    received_data.d = "Hello";
+    strcpy(received_data.d, "Hello");
     received_data.e = false;
 
     // Send message via ESP-NOW
