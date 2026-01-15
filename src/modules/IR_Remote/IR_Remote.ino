@@ -1,17 +1,17 @@
-const uint8_t flamePin = A0;
-const int sensorMax = 1024;
-const int sensorMin = 0;
-void setup() {
-  Serial.begin(115200);
-  // put your setup code here, to run once:
+#include <IRremote.hpp>
+
+const uint8_t inPin = 11;
+void setup()
+{
+    Serial.begin(115200);
+    IrReceiver.begin(inPin, ENABLE_LED_FEEDBACK);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  float flameReading = analogRead(flamePin);
-  Serial.println(flameReading);
-  if (flameReading < 60) {
-    Serial.println("FIRE AHHHHHHHHHHHH");
-  }
-  delay(100);
+void loop()
+{
+    if (IrReceiver.decode())
+    {
+        Serial.println(IrReceiver.decodedIRData.decodedRawData, HEX);
+        IrReceiver.resume();
+    }
 }
