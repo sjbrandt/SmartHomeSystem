@@ -1,18 +1,5 @@
-#include <SPI.h>
-#include <MFRC522.h>
-#include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
-#include <Wire.h>
-
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-
-// --- Pin configuration ---
-#define SS_PIN 5
-#define RST_PIN 3
-#define GREEN_LED 0
-#define RED_LED 2
-#define BLUE_LED 4
-#define BUTTON 15
+#include <LiquidCrystal_I2C.h>
 
 const byte numRows = 4;  //number of rows on the keypad
 const byte numCols = 4;  //number of columns on the keypad
@@ -35,160 +22,41 @@ short a = 0, i = 0, s = 0, j = 0;  //Variables used later
 byte rowPins[numRows] = { 13, 12, 14, 27 };  //Rows 0 to 3 //if you modify your pins you should modify this too
 byte colPins[numCols] = { 26, 25, 33, 32 };  //Columns 0 to 3
 
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
 
-MFRC522 rfid(SS_PIN, RST_PIN);
-
-// Current valid card UID
-String validUID = "4f41e11e";
-
-// Lock state
-bool isLocked = true;
-
-// When true, next card scanned becomes the new validUID
-bool learnMode = false;
-
-// Helper: update state LEDs based on isLocked
-void updateStateLeds() {
-  if (isLocked) {
-    digitalWrite(RED_LED, HIGH);
-    digitalWrite(GREEN_LED, LOW);
-  } else {
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(GREEN_LED, HIGH);
-  }
-}
-
 void setup() {
-  Serial.begin(115200);
-
-  pinMode(GREEN_LED, OUTPUT);
-  pinMode(RED_LED, OUTPUT);
-  pinMode(BLUE_LED, OUTPUT);
-  pinMode(BUTTON, INPUT_PULLUP);  // Button active LOW
-
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
-
-  SPI.begin();
-  rfid.PCD_Init();
-
   // initialize LCD
   lcd.init();
   // turn on LCD backlight
   lcd.backlight();
-
-  updateStateLeds();
-
-  Serial.println("RFID system ready...");
-  if (validUID == "") {
-    Serial.println("Add card");
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Add card");
-    learnMode = true;
-    delay(300);  // Prevent multiple triggers
-  }
+  lcd.setCursor(0, 0);
+  lcd.print("Standby");  //What's written on the LCD you can change
 }
 
 void loop() {
-  digitalWrite(BLUE_LED, LOW);
-  keypressed = myKeypad.getKey();
-
-  // --- Check learn button ---
-  if (digitalRead(BUTTON) == LOW) {
-    learnMode = true;
+  keypressed = myKeypad.getKey();  //Constantly waiting for a key to be pressed
+  if (keypressed == '*') {         // * to open the lock
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Add card");
-    delay(300);  // Prevent multiple triggers
-  }
-
-  // --- Check for card ---
-  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
-    updateStateLeds();
-    return;
-  }
-
-  // Build UID string
-  String readUID = "";
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    char buf[3];
-    snprintf(buf, sizeof(buf), "%02x", rfid.uid.uidByte[i]);
-    readUID += buf;
-  }
-
-  Serial.print("Card detected with UID: ");
-  Serial.println(readUID);
-
-  // --- If in learn mode, update validUID ---
-  if (learnMode) {
-    validUID = readUID;
-    learnMode = false;
-
-    Serial.print("New valid UID stored: ");
-    Serial.println(validUID);
-
-    // Visual confirmation: blink green LED
-    for (int i = 0; i < 3; i++) {
-      digitalWrite(GREEN_LED, HIGH);
-      delay(150);
-      digitalWrite(GREEN_LED, LOW);
-      delay(150);
-    }
-
-    updateStateLeds();
-  }
-  // --- Normal operation ---
-  else {
-    if (readUID.equalsIgnoreCase(validUID)) {
+    lcd.print("Enter code");  //Message to show
+    GetCode();                //Getting code function
+    if (a == sizeof(code))    //The GetCode function assign a value to a (it's correct when it has the size of the code array)
+      OpenDoor();             //Open lock function if code is correct
+    else {
       lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Enter code");  //Message to show
-      GetCode();                //Getting code function
-      if (a == sizeof(code)) {  //The GetCode function assign a value to a (it's correct when it has the size of the code array)
-        isLocked = !isLocked;
-        updateStateLeds();
-        printLockStatus(isLocked);
-      } else {
-        lcd.clear();
-        lcd.print("Wrong");
-        // Valid card toggles lock state
-
-
-        
-      }
-    } else {
-      // Invalid card
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Access denied");
-      Serial.println("Access denied");
-      digitalWrite(BLUE_LED, HIGH);
-      updateStateLeds();
+      lcd.print("Wrong");  //Message to print when the code is wrong
     }
+    delay(2000);
+    lcd.clear();
+    lcd.print("Standby");  //Return to standby mode it's the message do display when waiting
   }
 
-  // Cleanup RFID
-  rfid.PICC_HaltA();
-  rfid.PCD_StopCrypto1();
-
-  delay(250);
-}
-
-void printLockStatus(bool isLocked) {
-  if (isLocked) {
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print("LOCKED");
-          Serial.println("State changed: LOCKED");
-        } else {
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print("UNLOCKED");
-          Serial.println("State changed: UNLOCKED");
-        }
+  if (keypressed == 'C') {  //To change the code it calls the changecode function
+    ChangeCode();
+    lcd.clear();
+    lcd.print("Standby");  //When done it returns to standby mode
+  }
 }
 
 void GetCode() {  //Getting code sequence
@@ -198,7 +66,7 @@ void GetCode() {  //Getting code sequence
 
   while (keypressed != '#') {  //The user press # to confirm the code otherwise he can keep typing
     keypressed = myKeypad.getKey();
-    if (keypressed != NO_KEY && keypressed != '#') {  //If the char typed isn't # and neither "nothing"
+    if (keypressed != NO_KEY && keypressed != '#') {  //If the char typed isn't A and neither "nothing"
       lcd.setCursor(j, 1);                            //This to write "*" on the LCD whenever a key is pressed it's position is controlled by j
       lcd.print("*");
       j++;
@@ -306,4 +174,9 @@ void GetNewCode2() {  //This is exactly like the GetNewCode1 function but this t
     }
   }
   keypressed = NO_KEY;
+}
+
+void OpenDoor() {  //Lock opening function open for 3s
+  lcd.clear();
+  lcd.print("Welcome");  //With a message printed
 }
