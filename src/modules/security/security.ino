@@ -169,6 +169,23 @@ void changePasscodeFlow() {
     delay(READ_milliSECONDS);
     return;
   }
+
+  // Get new passcode
+  String newCode = newPasscodeFlow();
+  if (passcode = "error") {
+    return;
+  }
+
+  // Commit
+  passcode = newCode;
+
+  lcd.clear();
+  lcd.print("PIN Updated");
+  delay(READ_milliSECONDS);
+  
+}
+
+String newPasscodeFlow() {
   // New PIN
   String new1 = GetCodeWithPrompt("New PIN:");
   // Confirm
@@ -177,12 +194,9 @@ void changePasscodeFlow() {
     lcd.clear();
     lcd.print("Mismatch");
     delay(READ_milliSECONDS);
-    return;
+    return "error";
   }
-  passcode = new1;
-  lcd.clear();
-  lcd.print("PIN Updated");
-  delay(READ_milliSECONDS);
+  return new1;
 }
 
 // Wait for and store a new RFID UID as the valid card
@@ -215,7 +229,15 @@ void changeCardFlow() {
     newUID += buf;
   }
 
+  // Change passcode
+  String newCode = newPasscodeFlow();
+  if (newCode == "error") {
+    return;
+  }
+
+  // Commit
   validUID = newUID;
+  passcode = newCode;
 
   lcd.clear();
   lcd.print("Card updated");
