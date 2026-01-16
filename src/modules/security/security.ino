@@ -15,7 +15,7 @@
 #define MIN_PIN_LEN 4
 #define MAX_PIN_LEN 8
 
-#define READ_miliSECONDS 1000
+#define READ_milliSECONDS 1000
 
 // -------------------- Globals ------------------------
 int triesLeft = MAX_NUMBER_TRIES;
@@ -86,7 +86,7 @@ String GetCodeWithPrompt(const String &prompt) {
         // Too short
         lcdLineClear(1);
         lcd.print("Too short, min 4");
-        delay(READ_miliSECONDS);
+        delay(READ_milliSECONDS);
         lcd.clear();
         lcd.print(prompt);
         lcd.setCursor(0, 1);
@@ -128,7 +128,7 @@ String GetCodePrefill(char firstDigit) {
         // Too short
         lcdLineClear(1);
         lcd.print("Too short, min 4");
-        delay(READ_miliSECONDS);
+        delay(READ_milliSECONDS);
         lcd.clear();
         lcd.print("Enter code");
         lcd.setCursor(0, 1);
@@ -161,7 +161,7 @@ void changePasscodeFlow() {
   if (oldPin != passcode) {
     lcd.clear();
     lcd.print("Wrong PIN");
-    delay(READ_miliSECONDS);
+    delay(READ_milliSECONDS);
     return;
   }
   // New PIN
@@ -171,13 +171,13 @@ void changePasscodeFlow() {
   if (new1 != new2) {
     lcd.clear();
     lcd.print("Mismatch");
-    delay(READ_miliSECONDS);
+    delay(READ_milliSECONDS);
     return;
   }
   passcode = new1;
   lcd.clear();
   lcd.print("PIN Updated");
-  delay(READ_miliSECONDS);
+  delay(READ_milliSECONDS);
 }
 
 // Wait for and store a new RFID UID as the valid card
@@ -187,7 +187,7 @@ void changeCardFlow() {
   if (pin != passcode) {
     lcd.clear();
     lcd.print("Wrong PIN");
-    delay(READ_miliSECONDS);
+    delay(READ_milliSECONDS);
     return;
   }
   lcd.clear();
@@ -217,7 +217,7 @@ void changeCardFlow() {
   lcd.setCursor(0, 1);
   // Display last 8 chars if you want to fit; here we show whole (may wrap)
   lcd.print(newUID);
-  delay(READ_miliSECONDS);
+  delay(READ_milliSECONDS);
 
   // Cleanup RFID
   rfid.PICC_HaltA();
@@ -295,7 +295,7 @@ void loop() {
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
           printLockStatus(isLocked);
-          delay(READ_miliSECONDS);
+          delay(READ_milliSECONDS);
           granted = true;
         } else {
           localTries--;
@@ -304,7 +304,7 @@ void loop() {
           lcd.setCursor(0, 1);
           lcd.print("Tries left: ");
           lcd.print(localTries);
-          delay(READ_miliSECONDS);
+          delay(READ_milliSECONDS);
         }
       }
       // Remaining attempts if not granted yet
@@ -313,7 +313,7 @@ void loop() {
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
           printLockStatus(isLocked);
-          delay(READ_miliSECONDS);
+          delay(READ_milliSECONDS);
           granted = true;
           break;
         } else {
@@ -323,7 +323,7 @@ void loop() {
           lcd.setCursor(0, 1);
           lcd.print("Tries left: ");
           lcd.print(localTries);
-          delay(READ_miliSECONDS);
+          delay(READ_milliSECONDS);
         }
       }
 
@@ -336,7 +336,7 @@ void loop() {
           lcd.setCursor(0, 1);
           lcd.print(waitSeconds);
           waitSeconds--;
-          delay(READ_miliSECONDS);
+          delay(READ_milliSECONDS);
         }
       }
     }
@@ -344,7 +344,7 @@ void loop() {
     // Invalid card
     lcd.clear();
     lcd.print("Access denied");
-    delay(READ_miliSECONDS);
+    delay(READ_milliSECONDS);
   }
 
   // Cleanup RFID per cycle
