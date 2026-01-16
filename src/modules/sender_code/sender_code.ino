@@ -40,7 +40,7 @@ void loop() {
   doc["ip"] = WiFi.localIP().toString(); // adds IP of the sensor
   doc["type"] = "dht22"; // what type of sensor is used. can also be called whatever function the sensor does
 
-  // creates JSON with measured sensor data
+  // creates JSON with measured sensor data. you can add however many data fields as necessary
   JsonObject data = doc["data"].to<JsonObject>();
   data["temperature"] = 21.4;
   data["humidity"] = 48.0;
