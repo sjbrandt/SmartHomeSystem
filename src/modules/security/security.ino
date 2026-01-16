@@ -64,6 +64,11 @@ void lcdLineClear(uint8_t row) {
   lcd.setCursor(0, row);
 }
 
+void lcdPrintRight(uint8_t row, String msg) {
+  lcd.setCursor(16 - msg.length(), row);
+  lcd.print(msg);
+}
+
 bool compareCodes(const String &code1, const String &code2) {
   return (code1 == code2);
 }
@@ -235,6 +240,8 @@ void printLockStatus(bool isLocked) {
 void showReady() {
   lcd.clear();
   lcd.print(readyText);
+  String lockedText = isLocked ? "[Locked]" : "[Unlocked]";
+  lcdPrintRight(1, lockedText);
 }
 
 // -------------------- Setup / Loop -------------------
