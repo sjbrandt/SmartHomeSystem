@@ -1,0 +1,40 @@
+int sPin = 10;
+int ledPin = 12;
+int val;
+unsigned long timer = 0;
+const unsigned long timeout = 5000;
+
+bool ledState = LOW;
+bool prevLedState = LOW;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(sPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  val = digitalRead(sPin);
+
+  if (val == HIGH) {
+    digitalWrite(ledPin, HIGH);
+    ledState = HIGH;
+    timer = millis();
+  }
+
+  if (millis() - timer >= timeout) {
+    digitalWrite(ledPin, LOW);
+    ledState = LOW;
+  }
+
+  if (ledState != prevLedState) {
+    if (ledState == HIGH) {
+      Serial.println("Motion!");
+    } else {
+      Serial.println("Timeout.");
+    }
+    prevLedState = ledState;
+  }
+
+  delay(300);
+}
