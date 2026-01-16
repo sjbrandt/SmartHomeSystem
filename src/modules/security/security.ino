@@ -246,8 +246,7 @@ void setup() {
   SPI.begin();
   rfid.PCD_Init();
 
-  lcd.clear();
-  lcd.print(readyText);
+  showReady();
   delay(250);  // small delay
 }
 
