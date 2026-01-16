@@ -225,15 +225,10 @@ void changeCardFlow() {
 }
 
 void printLockStatus(bool isLocked) {
-  if (isLocked) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("LOCKED");
-  } else {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("UNLOCKED");
-  }
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  String text = isLocked ? "LOCKED" : "UNLOCKED";
+  lcd.print(text);
 }
 
 
