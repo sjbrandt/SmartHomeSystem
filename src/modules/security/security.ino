@@ -4,6 +4,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 #include <Wire.h>
+#include "comm.h"
 
 // -------------------- User Config --------------------
 #define SS_PIN 5
@@ -318,6 +319,7 @@ void loop() {
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
           printLockStatus(isLocked);
+          sendSensorData(1, "Keypad", "Locked", isLocked); // not known whether works yet
           delay(READ_milliSECONDS);
           granted = true;
         } else {
