@@ -1,6 +1,15 @@
+#include <ArduinoJson.h>
+
+// libraries for ESP32
+// #include <WiFi.h>
+// #include <HTTPClient.h>
+
+// libraries for ESP8266
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <ArduinoJson.h>
+
+
+
 
 WiFiClient client;
 HTTPClient http;
