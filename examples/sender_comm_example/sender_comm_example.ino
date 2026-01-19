@@ -1,5 +1,9 @@
-// This file serves as an example for how to use sender_com.h to send data and fetch commmands
-// Do note that it is required to be in range of Victor's hotspot for this to work
+/**
+ * @file sender_comm_example.ino
+ * @author Sofus Brandt (s214972)
+ * @brief This file serves as an example for how to use sender_com.h to send data and fetch commmands.
+ *        Do note that it is required to be in range of Victor's hotspot for this to work.
+ */
 
 #include "sender_comm.h"
 #include <ArduinoJson.h>  // ArduinoJson by Benoit. Needs to be installed through the Library Manager

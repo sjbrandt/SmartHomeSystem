@@ -1,3 +1,12 @@
+/**
+ * @file sender_comm.h
+ * 
+ * @author Sofus Brandt (s214972)
+ * 
+ * @brief Header file for functions implemented in `sender_comm.cpp`, allowing
+ *        for communication with the Central Hub through HTTP requests and JSON objects.
+ */
+
 #ifndef SENSORSENDER_H
 #define SENSORSENDER_H
 
