@@ -11,9 +11,12 @@
     #include <HTTPClient.h>
 #endif
 
-void sendPayload(String payload);
-String createPayload(int sensorID, String sensorType, String dataName, bool data);
-void sendSensorData(int sensorID, String sensorType, String dataName, bool data);
 void initWifi();
+void sendPayload(String payload);
+String createPayload(int sensorID, String sensorType, String dataName, float data);
+void sendSensorData(int sensorID, String sensorType, String dataName, float data);
+
+String fetch_commands(int sensorID);
+void handle_command(String cmd, JsonObject parameters);
 
 #endif

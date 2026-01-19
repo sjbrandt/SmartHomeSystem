@@ -430,7 +430,7 @@ void loop() {
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
           printLockStatus(isLocked);
-          sendSensorData(1, "Keypad", "Locked", isLocked); // not known whether works yet
+          sendSensorData(1, "Keypad", "Locked", (float) isLocked);  // not known whether works yet
           delay(READ_milliSECONDS);
           granted = true;
         } else {
