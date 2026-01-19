@@ -4,7 +4,6 @@
 
 bool testVariable = true;
 
-
 // this is the webpage
 const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -18,12 +17,20 @@ const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 </body></html>
 )rawliteral";
 
+const uint8_t greenLED = D3;
+const uint8_t redLED = D4;
+
 const char* ssid = "TheBlackLodge";
 const char* pass = "theowlsarenotwhattheyseem";
 
 ESP8266WebServer server(80);
 
 #define MAXSENSORS 10
+
+unsigned long lastThingSpeakUpload = 0;
+const unsigned long thingSpeakInterval = 20UL * 1000UL;
+
+int currentCommandSlot = 0;
 
 struct SensorData {
   String ip;
@@ -43,9 +50,6 @@ struct Command {
 };
 
 Command commands[MAXSENSORS];
-
-unsigned long lastThingSpeakUpload = 0;
-const unsigned long thingSpeakInterval = 20UL * 1000UL;
 
 // handles sensor to hub communication
 void handleSensorPost() {
@@ -143,61 +147,82 @@ void setupRoutes() {
 }
 
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
-  for (int i = 0; i < MAXSENSORS; i++) {
-    commands[i].targetID = targetID;
-    commands[i].cmd = cmd;
-    commands[i].parameters.clear();
-    commands[i].parameters.set(parameters);
-    commands[i].lastID = commands[i].commandID;
-    int newID = random(1,999);
-    if (newID == commands[i].lastID) {newID++;};
-    commands[i].commandID = newID;
-    return;
-  Serial.println("Command array full!");
+  int i = currentCommandSlot;
+
+  // checks for duplicates
+  for (int j = 0; j < MAXSENSORS; j++) {
+    if (targetID == commands[j].targetID && 
+        cmd == commands[j].cmd && 
+        parameters.as<JsonVariant>() == commands[j].parameters.as<JsonVariant>()) {
+      return;
+    }
+  }
+
+  commands[i].targetID = targetID;
+  commands[i].cmd = cmd;
+  commands[i].parameters.clear();
+  commands[i].parameters.set(parameters);
+  commands[i].lastID = commands[i].commandID;
+
+  int newID = random(1, 999);
+  if (newID == commands[i].lastID) { newID++; };
+  commands[i].commandID = newID;
+
+  currentCommandSlot++;
+  if (currentCommandSlot >= MAXSENSORS) {
+    currentCommandSlot = 0;
   }
 }
 
-  void setup() {
-    Serial.begin(115200);
+void setup() {
+  Serial.begin(115200);
 
-    WiFi.mode(WIFI_STA);
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
 
-    WiFi.begin(ssid, pass);
+  digitalWrite(redLED, LOW);
+  digitalWrite(greenLED, LOW);
 
-    Serial.println("Connecting");
+  WiFi.mode(WIFI_STA);
 
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(200);
-      Serial.print(".");
-    }
+  WiFi.begin(ssid, pass);
 
-    Serial.println();
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-
-    setupRoutes();
-    server.begin();
-    Serial.println("HTTP server started");
+  Serial.println("Connecting");
+  digitalWrite(redLED, HIGH);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(200);
+    Serial.print(".");
   }
 
-  void evaluateRules() {
-    for (int i = 0; i < MAXSENSORS; i++) {
-      if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
-        JsonDocument parameters;
-        parameters["interval"] = 1;
-        parameters["color"] = "red";
-        addCommand(2, "flash", parameters);  // sensor ID 2, command, parameters
-        testVariable = false;
-      }
+  Serial.println();
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+
+  setupRoutes();
+  server.begin();
+  Serial.println("HTTP server started");
+  digitalWrite(redLED, LOW);
+  digitalWrite(greenLED, HIGH);
+}
+
+void evaluateRules() {
+  for (int i = 0; i < MAXSENSORS; i++) {
+    if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
+      JsonDocument parameters;
+      parameters["interval"] = 1;
+      parameters["color"] = "red";
+      addCommand(2, "flash", parameters);  // sensor ID 2, command, parameters
     }
   }
-  void loop() {
-    // put your main code here, to run repeatedly:
-    server.handleClient();
-    evaluateRules();
-    // only periodically uploads to thingspeak such that it doesn't interfere with sensor signals
-    if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
-      uploadToThingSpeak();
-      lastThingSpeakUpload = millis();
-    }
+  testVariable = false;
+}
+void loop() {
+  // put your main code here, to run repeatedly:
+  server.handleClient();
+  evaluateRules();
+  // only periodically uploads to thingspeak such that it doesn't interfere with sensor signals
+  if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
+    uploadToThingSpeak();
+    lastThingSpeakUpload = millis();
   }
+}
