@@ -1,4 +1,4 @@
-#include "comm.h"
+#include "sender_comm.h"
 #include <ArduinoJson.h>  // ArduinoJson by Benoit
 
 #if defined(ESP8266)
