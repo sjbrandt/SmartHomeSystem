@@ -20,7 +20,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 #include <Wire.h>
-#include "comm.h"
+#include "sender_comm.h"
 
 // -------------------- User Config --------------------
 #define SS_PIN 5
