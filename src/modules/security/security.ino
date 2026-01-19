@@ -153,11 +153,6 @@ String GetCodePrefill(char firstDigit) {
   }
 }
 
-// Convenience wrapper matching your earlier usage
-String GetCode() {
-  return GetCodeWithPrompt("Enter code:");
-}
-
 // -------------------- Admin Flows --------------------
 // Change the stored passcode after verifying the old one
 void changePasscodeFlow() {
@@ -332,7 +327,7 @@ void loop() {
       }
       // Remaining attempts if not granted yet
       while (!granted && localTries > 0) {
-        inputValue = GetCode();  // blocking capture; enforces min len
+        inputValue = GetCodeWithPrompt("Enter code:");
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
           printLockStatus(isLocked);
