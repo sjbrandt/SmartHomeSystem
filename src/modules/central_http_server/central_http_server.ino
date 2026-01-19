@@ -38,7 +38,8 @@ struct Command {
   int targetID;
   String cmd;
   JsonDocument parameters;
-  bool executed;
+  int commandID;
+  int lastID;
 };
 
 Command commands[MAXSENSORS];
@@ -111,12 +112,11 @@ void handleCommands() {
   JsonArray arr = doc.to<JsonArray>();
 
   for (int i = 0; i < MAXSENSORS; i++) {
-    if (commands[i].executed) continue;
-
     JsonObject o = arr.add<JsonObject>();
     o["targetID"] = commands[i].targetID;
     o["cmd"] = commands[i].cmd;
-    o["parameters"] = commands[i].parameters;  // copy entire params document
+    o["parameters"] = commands[i].parameters;
+    o["commandID"] = commands[i].commandID;
   }
 
   String out;
@@ -125,7 +125,7 @@ void handleCommands() {
 }
 
 void uploadToThingSpeak() {
-  Serial.println("under construction");
+  //Serial.println("under construction");
 }
 
 void setupRoutes() {
@@ -144,59 +144,60 @@ void setupRoutes() {
 
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
   for (int i = 0; i < MAXSENSORS; i++) {
-    if (!commands[i].executed) {
-      commands[i].targetID = targetID;
-      commands[i].cmd = cmd;
-      commands[i].parameters.clear();
-      commands[i].parameters.set(parameters);  // copy everything
-      commands[i].executed = false;
-      return;
-    }
-  }
+    commands[i].targetID = targetID;
+    commands[i].cmd = cmd;
+    commands[i].parameters.clear();
+    commands[i].parameters.set(parameters);
+    commands[i].lastID = commands[i].commandID;
+    int newID = random(1,999);
+    if (newID == commands[i].lastID) {newID++;};
+    commands[i].commandID = newID;
+    return;
   Serial.println("Command array full!");
+  }
 }
 
-void setup() {
-  Serial.begin(115200);
+  void setup() {
+    Serial.begin(115200);
 
-  WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_STA);
 
-  WiFi.begin(ssid, pass);
+    WiFi.begin(ssid, pass);
 
-  Serial.println("Connecting");
+    Serial.println("Connecting");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(200);
-    Serial.print(".");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(200);
+      Serial.print(".");
+    }
+
+    Serial.println();
+    Serial.print("IP: ");
+    Serial.println(WiFi.localIP());
+
+    setupRoutes();
+    server.begin();
+    Serial.println("HTTP server started");
   }
 
-  Serial.println();
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
-
-  setupRoutes();
-  server.begin();
-  Serial.println("HTTP server started");
-}
-
-void evaluateRules() {
-  for (int i = 0; i < MAXSENSORS; i++) {
-    if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
-      JsonDocument parameters;
-      parameters["interval"] = 1;
-      parameters["color"] = "red";
-      addCommand(2, "flash", parameters);  // sensor ID 2, command, parameters
-      testVariable = false;
+  void evaluateRules() {
+    for (int i = 0; i < MAXSENSORS; i++) {
+      if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
+        JsonDocument parameters;
+        parameters["interval"] = 1;
+        parameters["color"] = "red";
+        addCommand(2, "flash", parameters);  // sensor ID 2, command, parameters
+        testVariable = false;
+      }
     }
   }
-}
-void loop() {
-  // put your main code here, to run repeatedly:
-  server.handleClient();
-  evaluateRules();
-  // only periodically uploads to thingspeak such that it doesn't interfere with sensor signals
-  if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
-    uploadToThingSpeak();
-    lastThingSpeakUpload = millis();
+  void loop() {
+    // put your main code here, to run repeatedly:
+    server.handleClient();
+    evaluateRules();
+    // only periodically uploads to thingspeak such that it doesn't interfere with sensor signals
+    if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
+      uploadToThingSpeak();
+      lastThingSpeakUpload = millis();
+    }
   }
-}
