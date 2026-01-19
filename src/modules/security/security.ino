@@ -1,3 +1,19 @@
+/**
+ * @file security.ino
+ * @brief Sketch for the security module
+ *
+ * This sketch is the code to be run on the ESP32 controlling the security module.
+ *
+ * Sensors:
+ * - Keypad
+ * - RFID reader and card(s)
+ * Actuators:
+ * - LCD screen
+ *
+ * @author Frederikke Biehe (s223981)
+ * @author Sofus Brandt (s214972)
+ * @date 2026
+ */
 
 #include <SPI.h>
 #include <MFRC522.h>
@@ -46,10 +62,25 @@ Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols)
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 // -------------------- Utility / Helpers --------------
+/**
+ * @brief Returns true if the given character is a digit
+ * 
+ * @param k character to check
+ * @return bool
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 bool isDigitKey(char k) {
   return (k >= '0' && k <= '9');
 }
 
+/**
+ * @brief Waits until a keypad key has been entered
+ * 
+ * @return char
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 char waitForAnyKey() {
   char k = NO_KEY;
   while (k == NO_KEY) {
@@ -58,24 +89,56 @@ char waitForAnyKey() {
   return k;
 }
 
+/**
+ * @brief Clears the given row of the LCD screen and sets the cursor to the first
+ *        column of the same row
+ * 
+ * @param row row number to be cleared
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 void lcdLineClear(uint8_t row) {
   lcd.setCursor(0, row);
   lcd.print("                ");  // 16 spaces
   lcd.setCursor(0, row);
 }
 
+/**
+ * @brief Prints a right-aligned message to the LCD screen
+ * 
+ * @param row row number to be printed on
+ * @param msg message to print
+ * 
+ * @author Sofus Brandt (s214972)
+ */
 void lcdPrintRight(uint8_t row, String msg) {
   lcd.setCursor(16 - msg.length(), row);
   lcd.print(msg);
 }
 
+/**
+ * @brief Compares two passcodes for equality
+ * 
+ * @param code1 first code for comparison
+ * @param code2 second code for comparison
+ * @return bool
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 bool compareCodes(const String &code1, const String &code2) {
   return (code1 == code2);
 }
 
 // -------------------- PIN Entry Functions ------------
-// Blocking PIN capture (numeric only) with prompt.
-// Masked output; '#' to submit with MIN length enforced
+/**
+ * @brief Gets a numeric passcode of length >= 4 from the user. Provides
+ *        masked output in the form of a * for each digit entered.
+ * 
+ * @param prompt text displayed before the input location
+ * @return String
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 String GetCodeWithPrompt(const String &prompt) {
   String entered = "";
   lcd.clear();
@@ -112,8 +175,17 @@ String GetCodeWithPrompt(const String &prompt) {
   }
 }
 
-// Blocking PIN capture with the first key already provided as a digit.
-// Masked output; '#' to submit with MIN length enforced.
+/**
+ * @brief Gets a numeric passcode of length >= 4 from the user, where the
+ *        first digit is given as a parameter. Is used for the main screen
+ *        where input type is only determined when first digit is entered.
+ *        Provides masked output in the form of a * for each digit entered.
+ * 
+ * @param firstDigit first digit of inputted passcode
+ * @return String 
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 String GetCodePrefill(char firstDigit) {
   String entered = "";
   if (isDigitKey(firstDigit)) {
@@ -154,7 +226,12 @@ String GetCodePrefill(char firstDigit) {
 }
 
 // -------------------- Admin Flows --------------------
-// Change the stored passcode after verifying the old one
+/**
+ * @brief Flow for changing password. Requires entering
+ *        the current passcode first.
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 void changePasscodeFlow() {
   // Verify old PIN
   String oldPin = GetCodeWithPrompt("Old PIN:");
@@ -180,6 +257,15 @@ void changePasscodeFlow() {
   
 }
 
+/**
+ * @brief Asks the user for and returns a new passcode. Requires entering
+ *        the new passcode twice for confirmation.
+ * 
+ * @return String 
+ * 
+ * @author Frederikke Biehe (s223981)
+ * @author Sofus Brandt (s214972)
+ */
 String newPasscodeFlow() {
   // New PIN
   String new1 = GetCodeWithPrompt("New PIN:");
@@ -195,6 +281,13 @@ String newPasscodeFlow() {
 }
 
 // Wait for and store a new RFID UID as the valid card
+/**
+ * @brief Flow for changing the authorized RFID card, as well as password.
+ *        Changes the global variables `validUID` and `passcode`.
+ * 
+ * @author Frederikke Biehe (s223981)
+ * @author Sofus Brandt (s214972)
+ */
 void changeCardFlow() {
   // Verify PIN
   String pin = GetCodeWithPrompt("Enter code:");
@@ -246,6 +339,14 @@ void changeCardFlow() {
   rfid.PCD_StopCrypto1();
 }
 
+/**
+ * @brief Prints new locked status to the LCD on row 0.
+ * 
+ * @param isLocked locked state to be displayed.
+ * 
+ * @author Frederikke Biehe (s223981)
+ * @author Sofus Brandt
+ */
 void printLockStatus(bool isLocked) {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -253,7 +354,12 @@ void printLockStatus(bool isLocked) {
   lcd.print(text);
 }
 
-
+/**
+ * @brief Prints a message to the LCD that the RFID scanner is ready.
+ * 
+ * @author Frederikke Biehe (s223981)
+ * @author Sofus Brandt
+ */
 void showReady() {
   lcd.clear();
   lcd.print(readyText);
@@ -262,6 +368,11 @@ void showReady() {
 }
 
 // -------------------- Setup / Loop -------------------
+/**
+ * @brief Runs setup functions when the program is first loaded onto the MCU.
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 void setup() {
   Serial.begin(115200);
   lcd.init();
@@ -274,6 +385,11 @@ void setup() {
   delay(250);  // small delay
 }
 
+/**
+ * @brief Runs the main functionality in an infinite loop.
+ * 
+ * @author Frederikke Biehe (s223981)
+ */
 void loop() {
   // No new card? nothing to do now.
   if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
