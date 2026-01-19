@@ -1,10 +1,15 @@
+/**
+ * @file central_http_server.ino
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @brief Sketch for the central ESP8266 HTTP server
+ * @date 2026
+ */
+
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
 
-bool testVariable = true;
-
-// this is the webpage
+// HTML code for the dashboard
 const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html><head><title>Smart Home System Dashboard</title></head>
@@ -17,21 +22,24 @@ const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 </body></html>
 )rawliteral";
 
-const uint8_t greenLED = D3;
-const uint8_t redLED = D4;
-
+// -------------------- Configuartion --------------------
 const char* ssid = "TheBlackLodge";
 const char* pass = "theowlsarenotwhattheyseem";
 
-ESP8266WebServer server(80);
+bool testVariable = true;
 
-#define MAXSENSORS 10
+const uint8_t greenLED = D3;
+const uint8_t redLED = D4;
 
 unsigned long lastThingSpeakUpload = 0;
 const unsigned long thingSpeakInterval = 20UL * 1000UL;
 
+// -------------------- Global variabes ------------------------
 int currentCommandSlot = 0;
 
+#define MAXSENSORS 10
+
+// -------------------- Structs ------------------------
 struct SensorData {
   String ip;
   String type;
@@ -39,7 +47,7 @@ struct SensorData {
   unsigned long lastSeen;
 };
 
-SensorData sensors[MAXSENSORS];
+SensorData sensors[MAXSENSORS]; // Allocates memory for MAXSENSORS number of sensors
 
 struct Command {
   int targetID;
@@ -49,36 +57,49 @@ struct Command {
   int lastID;
 };
 
-Command commands[MAXSENSORS];
+Command commands[MAXSENSORS]; // Allocates memory for MAXSENSORS number of commands
 
-// handles sensor to hub communication
+// Opens a webserver on port 80
+ESP8266WebServer server(80);
+
+/**
+ * @brief Handles sensor to hub communication.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * 
+ */
 void handleSensorPost() {
+  // Checks whether the request is empty
   if (server.arg("plain").length() == 0) {
     server.send(400, "text/plain", "No body");
     return;
   }
 
+  // Deserializes the request into the JSON object 'doc'. If it returns an error, throw an error message
   JsonDocument doc;
   DeserializationError err = deserializeJson(doc, server.arg("plain"));
-
   if (err) {
     server.send(400, "text/plain", "Bad JSON");
     return;
   }
 
+  // Reads and sets the ID of the sensor and checks validity
   int id = doc["id"];
   if (id < 0 || id >= MAXSENSORS) {
     server.send(400, "text/plain", "Invalid ID");
     return;
   }
 
+  // Write the incoming data into a struct with an ID
   sensors[id].ip = doc["ip"].as<String>();
   sensors[id].type = doc["type"].as<String>();
   sensors[id].lastData.clear();
   sensors[id].lastData.set(doc["data"]);
   sensors[id].lastSeen = millis();
 
+  // Lets the sensor know we have received and processes the POST
   server.send(200, "text/plain", "OK");
+
   Serial.println(sensors[id].ip);
   Serial.println(sensors[id].type);
   Serial.println(serializeJsonPretty(sensors[id].lastData, Serial));
@@ -86,6 +107,13 @@ void handleSensorPost() {
 }
 
 // handles dashboard to hub communication
+/**
+ * @brief Handles communication from the dashboard to the hub.
+ *        Currently unused, however the intent was to be able to interact
+ *        with the hub from the website.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ */
 /*
 void handleStateGet() {
   JsonDocument doc;
@@ -107,10 +135,21 @@ void handleStateGet() {
 }
 */
 
+/**
+ * @brief Sends the HTML file through HTTP to whomever requested the file.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ */
 void handleDashboard() {
   server.send(200, "text/html", DASHBOARD_HTML);
 }
 
+/**
+ * @brief Handles sending  the commands to the API for sensors to read and execute.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * 
+ */
 void handleCommands() {
   JsonDocument doc;
   JsonArray arr = doc.to<JsonArray>();
@@ -128,28 +167,51 @@ void handleCommands() {
   server.send(200, "application/json", out);
 }
 
+/**
+ * @brief Handles sending select sensor data to ThingSpeak to display graphically.
+ * 
+ *  @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * 
+ */
 void uploadToThingSpeak() {
   //Serial.println("under construction");
 }
 
+/**
+ * @brief Sets up all HTTP endpoints for the webserver
+ *        / GET             : Serves the dashboard webpage
+ *        /api/sensor POST  : Receives sensor data
+ *        /api/commands GET : Returns current command list 
+ *        And includes sending a 404 in case of no endpoint.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ */
 void setupRoutes() {
-  // dashboard page
-  server.on("/", HTTP_GET, handleDashboard);
+  server.on("/", HTTP_GET, handleDashboard); // Dashboard
 
   // API endpoints
-  server.on("/api/sensor", HTTP_POST, handleSensorPost);
+  server.on("/api/sensor", HTTP_POST, handleSensorPost); // Sensor data
   //server.on("/api/state", HTTP_GET, handleStateGet); //currently unused
-  server.on("/api/commands", HTTP_GET, handleCommands);
-  // fallback
+  server.on("/api/commands", HTTP_GET, handleCommands); // Serves commands
   server.onNotFound([]() {
-    server.send(404, "text/plain", "Not found");
+    server.send(404, "text/plain", "Not found"); // 404 Fallback
   });
 }
 
+/**
+ * @brief Adds a command to the list of commands at /api/commands.
+ * 
+ * @param targetID Defines which sensor to issue a command to.
+ * @param cmd Defines the command as a string for the sensor to interpret.
+ * @param parameters Defines a JSON object of parameters for the command to execute on.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * 
+ */
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
   int i = currentCommandSlot;
 
-  // checks for duplicates
+  // Checks for duplicates
   for (int j = 0; j < MAXSENSORS; j++) {
     if (targetID == commands[j].targetID && 
         cmd == commands[j].cmd && 
@@ -158,35 +220,49 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
     }
   }
 
+  // Assigns the values to the command
   commands[i].targetID = targetID;
   commands[i].cmd = cmd;
   commands[i].parameters.clear();
   commands[i].parameters.set(parameters);
   commands[i].lastID = commands[i].commandID;
 
+  // Gives the command a unique ID, such that sensor can keep track if the command has been executed
   int newID = random(1, 999);
   if (newID == commands[i].lastID) { newID++; };
   commands[i].commandID = newID;
 
+  // Increments and rolls over the counter to write the next command
   currentCommandSlot++;
   if (currentCommandSlot >= MAXSENSORS) {
     currentCommandSlot = 0;
   }
 }
 
+/**
+ * @brief The Arduino setup function, that runs at boot.
+ *        - Sets baud rate
+ *        - Sets up LEDs
+ *        - Initializes the WiFi
+ *        - Attempt to connect to the WiFi network
+ *        - Sets up the routes and webserver
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ */
 void setup() {
   Serial.begin(115200);
 
+  // Status LEDs
   pinMode(redLED, OUTPUT);
   pinMode(greenLED, OUTPUT);
-
   digitalWrite(redLED, LOW);
   digitalWrite(greenLED, LOW);
 
+  // Initializes the WiFi
   WiFi.mode(WIFI_STA);
-
   WiFi.begin(ssid, pass);
 
+  // Attempts to connect to the WiFi (Red LED turns on)
   Serial.println("Connecting");
   digitalWrite(redLED, HIGH);
   while (WiFi.status() != WL_CONNECTED) {
@@ -194,6 +270,7 @@ void setup() {
     Serial.print(".");
   }
 
+  // When successful, IP is printed, routes are set up and the webserver is started
   Serial.println();
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
@@ -205,22 +282,36 @@ void setup() {
   digitalWrite(greenLED, HIGH);
 }
 
+/**
+ * @brief Here user defined actions can be set up when certain sensor conditions are met.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * 
+ */
 void evaluateRules() {
+  // Iterates through all sensors
   for (int i = 0; i < MAXSENSORS; i++) {
     if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
       JsonDocument parameters;
       parameters["interval"] = 1;
       parameters["color"] = "red";
-      addCommand(2, "flash", parameters);  // sensor ID 2, command, parameters
+      addCommand(2, "flash", parameters);  // Sensor ID, Command, Parameters
     }
   }
-  testVariable = false;
+  testVariable = false; // Used for internal testing purposes. 
 }
+
+/**
+ * @brief The Arduino loop listens for incoming HTTP requests and evaluates the rules/user defined actions.
+ *        Once ThingSpeak is set up, it uploads its data occasionally.
+ * 
+ * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ */
 void loop() {
-  // put your main code here, to run repeatedly:
   server.handleClient();
   evaluateRules();
-  // only periodically uploads to thingspeak such that it doesn't interfere with sensor signals
+
+  // Only periodically uploads to ThingSpeak, such that it doesn't interfere with incoming data
   if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
     uploadToThingSpeak();
     lastThingSpeakUpload = millis();
