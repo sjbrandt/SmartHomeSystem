@@ -15,6 +15,7 @@ HTTPClient http;
 const char* ssid = "TheBlackLodge"; // WiFi name
 const char* pass = "theowlsarenotwhattheyseem"; // WiFi password
 
+// creates a JSON payload, in the form of a string, containing data (currently only boolean)
 String createPayload(int sensorID, String sensorType, String dataName, bool data) {
   JsonDocument doc;
   doc["id"] = sensorID; // MUST be unique from other sensors
@@ -28,6 +29,8 @@ String createPayload(int sensorID, String sensorType, String dataName, bool data
   // properly serializes the data for transmission
   String payload;
   serializeJson(doc, payload);
+
+  Serial.print(serializeJsonPretty(payload));  // DEBUG - print constructed payload
 
   return payload;
 }
