@@ -30,7 +30,6 @@ void sendSensorData(String payload) {
   http.end();
 }
 
-
 void setup() {
   Serial.begin(115200);
 
@@ -48,8 +47,8 @@ void loop() {
 
   // creates JSON with measured sensor data. you can add however many data fields as necessary
   JsonObject data = doc["data"].to<JsonObject>();
-  data["temperature"] = 21.4;
-  data["humidity"] = 48.0;
+  data["temperature"] = true;
+  data["humidity"] = false;
 
   // properly serializes the data for transmission
   String payload;
