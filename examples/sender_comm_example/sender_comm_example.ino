@@ -22,11 +22,21 @@ void setup() {
 
 void loop() {
   // ------------ SENDING DATA ------------
-  jsonInit(sensorID, "security");       // initialize a json document with sensor ID and sensor type
-  jsonAddBool("isLocked", true);        // add a data point of type bool
-  jsonAddString("passcode", "1234");    // add a data point of type string
-  jsonAddFloat("batteryCharge", 6.7);   // add a data point of type float
-  jsonSend();                           // send the JSON document with the data and all!
+  // Initialize a json document with sensor ID and sensor type.
+  // This is so you can send different data points at once. New data of the same type should be in a new JSON.
+  jsonInit(sensorID, "security");
+
+  // add a data point of type bool
+  jsonAddBool("isLocked", true);
+
+  // add a data point of type string
+  jsonAddString("passcode", "1234");
+
+  // add a data point of type float
+  jsonAddFloat("batteryCharge", 6.7);
+
+  // send the JSON document with the data and all!
+  jsonSend();                           
   
   // The sent JSON will look like this:
   // {
