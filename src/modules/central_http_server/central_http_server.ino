@@ -231,32 +231,52 @@ void setupRoutes() {
  * 
  */
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
+  /*
   int i = currentCommandSlot;
-
   // Checks for duplicates
   for (int j = 0; j < MAXSENSORS; j++) {
     if (targetID == commands[j].targetID && cmd == commands[j].cmd && parameters.as<JsonVariant>() == commands[j].parameters.as<JsonVariant>()) {
       return;
     }
+  }*/
+  for (int i = 0; i < MAXSENSORS; i++) {
+    if (commands[i].targetID == targetID) {
+      // Assigns the values to the command
+      commands[i].targetID = targetID;
+      commands[i].cmd = cmd;
+      commands[i].parameters.clear();
+      commands[i].parameters.set(parameters);
+      commands[i].lastID = commands[i].commandID;
+
+      // Gives the command a unique ID, such that sensor can keep track if the command has been executed
+      int newID = random(1, 999);
+      if (newID == commands[i].lastID) { newID++; };
+      commands[i].commandID = newID;
+      return;
+    }
   }
+  for (int i = 0; i < MAXSENSORS; i++) {
+    if (commands[i].targetID == 0) {
+      // Assigns the values to the command
+      commands[i].targetID = targetID;
+      commands[i].cmd = cmd;
+      commands[i].parameters.clear();
+      commands[i].parameters.set(parameters);
+      commands[i].lastID = commands[i].commandID;
 
-  // Assigns the values to the command
-  commands[i].targetID = targetID;
-  commands[i].cmd = cmd;
-  commands[i].parameters.clear();
-  commands[i].parameters.set(parameters);
-  commands[i].lastID = commands[i].commandID;
-
-  // Gives the command a unique ID, such that sensor can keep track if the command has been executed
-  int newID = random(1, 999);
-  if (newID == commands[i].lastID) { newID++; };
-  commands[i].commandID = newID;
-
+      // Gives the command a unique ID, such that sensor can keep track if the command has been executed
+      int newID = random(1, 999);
+      if (newID == commands[i].lastID) { newID++; };
+      commands[i].commandID = newID;
+      return;
+    }
+  }
+  /*
   // Increments and rolls over the counter to write the next command
   currentCommandSlot++;
   if (currentCommandSlot >= MAXSENSORS) {
     currentCommandSlot = 0;
-  }
+  }*/
 }
 
 /**
@@ -333,7 +353,7 @@ void evaluateRules() {
       if (millis() - sensors[i].lastSeen < 100) {
         ThingSpeak.setField(4, sensors[i].lastData["isLocked"].as<bool>());
       }
-      
+
       JsonDocument parameters;
       parameters["state"] = sensors[i].lastData["isLocked"].as<bool>();
       addCommand(3, "checkState", parameters);
