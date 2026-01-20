@@ -62,6 +62,8 @@ byte colPins[numCols] = { 26, 25, 33, 32 };
 Keypad myKeypad = Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
 MFRC522 rfid(SS_PIN, RST_PIN);
 
+const int sensorID = 1;
+
 // -------------------- Utility / Helpers --------------
 /**
  * @brief Returns true if the given character is a digit
@@ -384,6 +386,9 @@ void setup() {
 
   showReady();
   delay(250);  // small delay
+
+  // connect to hotspot
+  initWifi();
 }
 
 /**
@@ -429,6 +434,11 @@ void loop() {
         inputValue = GetCodePrefill(firstKey);
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
+          // send data to central hub
+          jsonInit(sensorID, "security");
+          jsonAddBool("isLocked", isLocked);
+          jsonSend();
+
           printLockStatus(isLocked);
           sendSensorData(1, "Keypad", "Locked", (float) isLocked);  // not known whether works yet
           delay(READ_milliSECONDS);
@@ -448,6 +458,11 @@ void loop() {
         inputValue = GetCodeWithPrompt("Enter code:");
         if (compareCodes(inputValue, passcode)) {
           isLocked = !isLocked;
+          // send data to central hub
+          jsonInit(sensorID, "security");
+          jsonAddBool("isLocked", isLocked);
+          jsonSend();
+          
           printLockStatus(isLocked);
           delay(READ_milliSECONDS);
           granted = true;
