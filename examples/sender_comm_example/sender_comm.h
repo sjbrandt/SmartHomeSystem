@@ -25,6 +25,12 @@ void sendPayload(String payload);
 String createPayload(int sensorID, String sensorType, String dataName, float data);
 void sendSensorData(int sensorID, String sensorType, String dataName, float data);
 
+void jsonInit(int sensorID, String sensorType);
+void jsonAddFloat(String dataName, float data);
+void jsonAddBool(String dataName, bool data);
+void jsonAddString(String dataName, String data);
+void jsonSend();
+
 String fetch_commands(int sensorID);
 void handle_command(String cmd, JsonObject parameters);
 

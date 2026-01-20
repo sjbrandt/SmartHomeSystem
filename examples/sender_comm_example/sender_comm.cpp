@@ -25,6 +25,9 @@ HTTPClient http;
 const char* ssid = "TheBlackLodge";              // WiFi name
 const char* pass = "theowlsarenotwhattheyseem";  // WiFi password
 
+JsonDocument currentDoc;  // Json document currently in construction
+JsonObject currentData;  // Data part of the Json document currently in construction
+
 /**
  * @brief Logs into WiFi with SSID and password, and logs IP to the serial monitor
  * 
@@ -70,6 +73,72 @@ String createPayload(int sensorID, String sensorType, String dataName, float dat
 }
 
 /**
+ * @brief Initializes a JSON document for sending data to teh central hub.
+ * 
+ * @param sensorID ID of the transmitting module
+ * @param sensorType type or name of sensor, to differentiate different sensors in the same module
+ * 
+ * @author Sofus Brandt (s214972) 
+ */
+void jsonInit(int sensorID, String sensorType) {
+  currentDoc.clear();
+  currentDoc["id"] = sensorID;
+  currentDoc["ip"] = WiFi.localIP().toString();
+  currentDoc["type"] = sensorType;
+  currentData = currentDoc["data"].to<JsonObject>();
+}
+
+/**
+ * @brief Adds a float data point to the JSON document in construction
+ * 
+ * @param dataName name of the data point (eg. "temperature")
+ * @param data data to be transmitted
+ * 
+ * @author Sofus Brandt (s214972) 
+ */
+void jsonAddFloat(String dataName, float data) {
+  currentData[dataName] = data;
+}
+
+/**
+ * @brief Adds a bool data point to the JSON document in construction
+ * 
+ * @param dataName name of the data point (eg. "temperature")
+ * @param data data to be transmitted
+ * 
+ * @author Sofus Brandt (s214972) 
+ */
+void jsonAddBool(String dataName, bool data) {
+  currentData[dataName] = data;
+}
+
+/**
+ * @brief Adds a string data point to the JSON document in construction
+ * 
+ * @param dataName name of the data point (eg. "temperature")
+ * @param data data to be transmitted
+ * 
+ * @author Sofus Brandt (s214972) 
+ */
+void jsonAddString(String dataName, String data) {
+  currentData[dataName] = data;
+}
+
+/**
+ * @brief Serializes and sends the JSON document
+ * 
+ * @author Sofus Brandt (s214972)
+ */
+void jsonSend() {
+  String payload;
+  serializeJson(currentDoc, payload);
+
+  Serial.println(serializeJsonPretty(currentDoc, Serial));  // DEBUG - print constructed payload
+
+  sendPayload(payload);
+}
+
+/**
  * @brief sends a JSON payload to the Central Hub
  * 
  * @param payload JSON payload to be sent
@@ -94,7 +163,8 @@ void sendPayload(String payload) {
 }
 
 /**
- * @brief Creates a payload of the given data and sends it to the Central Hub
+ * @brief DEPRECATED - Use jsonInit(), jsonAdd<Datatype>(), and jsonSend().
+ *        Creates a payload of the given data and sends it to the Central Hub.
  * 
  * @param sensorID ID of the calling module
  * @param sensorType type/name of sensor/module

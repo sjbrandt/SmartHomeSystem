@@ -1,6 +1,8 @@
 /**
  * @file sender_comm_example.ino
+ *
  * @author Sofus Brandt (s214972)
+ *
  * @brief This file serves as an example for how to use sender_com.h to send data and fetch commmands.
  *        Do note that it is required to be in range of Victor's hotspot for this to work.
  */
@@ -20,8 +22,11 @@ void setup() {
 
 void loop() {
   // ------------ SENDING DATA ------------
-  // void sendSensorData(int sensorID, String sensorType, String dataName, float data);
-  sendSensorData(sensorID, "security", "isLocked", 1);
+  jsonInit(sensorID, "security");       // initialize a json document with sensor ID and sensor type
+  jsonAddBool("isLocked", true);        // add a data point of type bool
+  jsonAddString("passcode", "1234");    // add a data point of type string
+  jsonAddFloat("batteryCharge", 6.7);   // add a data point of type float
+  jsonSend();                           // send the JSON document with the data and all!
   
   // The sent JSON will look like this:
   // {
@@ -29,7 +34,9 @@ void loop() {
   //   "ip": "10.198.101.248",
   //   "type": "security",
   //   "data": {
-  //     "isLocked": 1
+  //     "isLocked": 1,
+  //     "passcode": "1234",
+  //     "batteryCharge": 6.7
   // }
 
   // ------------ FETCHING COMMANDS ------------
