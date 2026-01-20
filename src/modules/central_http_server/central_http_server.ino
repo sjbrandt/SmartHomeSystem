@@ -370,6 +370,12 @@ void evaluateRules() {
       }
     }
 
+    if (i == 3 && sensors[i].type == "motionsensor") {
+      if (millis() - sensors[i].lastSeen < 100) {
+        ThingSpeak.setField(6, sensors[i].lastData["isIntruder"].as<bool>());
+      }
+    }
+    
     if (i == 4 && sensors[i].type == "flameDetector") {
       if (millis() - sensors[i].lastSeen < 100) {
         ThingSpeak.setField(5, sensors[i].lastData["isFire"].as<bool>());
