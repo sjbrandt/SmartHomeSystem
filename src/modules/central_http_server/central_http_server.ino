@@ -1,6 +1,6 @@
 /**
  * @file central_http_server.ino
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk)
  * @brief Sketch for the central ESP8266 HTTP server
  * @date 2026
  */
@@ -8,6 +8,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
+#include <ThingSpeak.h>
 
 // HTML code for the dashboard
 const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
@@ -26,13 +27,22 @@ const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 const char* ssid = "TheBlackLodge";
 const char* pass = "theowlsarenotwhattheyseem";
 
+unsigned long channelID = 3229693;
+const char* APIKey = "Q3X1R9DC29KFQM22";
+const char* thingSpeakServer = "api.thingspeak.com";
+
+unsigned long lastThingSpeakUpload = 0;
+const unsigned long thingSpeakInterval = 20UL * 1000UL; // Desired seconds * 1000 milliseconds
+
+unsigned long lastEvaluation = 0;
+const unsigned long evaluationInterval = 250;
+
 bool testVariable = true;
 
 const uint8_t greenLED = D3;
 const uint8_t redLED = D4;
 
-unsigned long lastThingSpeakUpload = 0;
-const unsigned long thingSpeakInterval = 20UL * 1000UL;
+WiFiClient client;
 
 // -------------------- Global variabes ------------------------
 int currentCommandSlot = 0;
@@ -65,7 +75,7 @@ ESP8266WebServer server(80);
 /**
  * @brief Handles sensor to hub communication.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk)
  * 
  */
 void handleSensorPost() {
@@ -100,10 +110,12 @@ void handleSensorPost() {
   // Lets the sensor know we have received and processes the POST
   server.send(200, "text/plain", "OK");
 
+  Serial.println("Received data:");
   Serial.println(sensors[id].ip);
   Serial.println(sensors[id].type);
   Serial.println(serializeJsonPretty(sensors[id].lastData, Serial));
   Serial.println(sensors[id].lastSeen);
+  Serial.println("-------------------");
 }
 
 // handles dashboard to hub communication
@@ -112,7 +124,7 @@ void handleSensorPost() {
  *        Currently unused, however the intent was to be able to interact
  *        with the hub from the website.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk)
  */
 /*
 void handleStateGet() {
@@ -138,7 +150,7 @@ void handleStateGet() {
 /**
  * @brief Sends the HTML file through HTTP to whomever requested the file.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk)
  */
 void handleDashboard() {
   server.send(200, "text/html", DASHBOARD_HTML);
@@ -147,7 +159,7 @@ void handleDashboard() {
 /**
  * @brief Handles sending  the commands to the API for sensors to read and execute.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk)
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk)
  * 
  */
 void handleCommands() {
@@ -170,11 +182,19 @@ void handleCommands() {
 /**
  * @brief Handles sending select sensor data to ThingSpeak to display graphically.
  * 
- *  @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ *  @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  * 
  */
 void uploadToThingSpeak() {
-  //Serial.println("under construction");
+    int status = ThingSpeak.writeFields(channelID, APIKey);
+    if (status == 200) {
+        Serial.println("Data successfully uploaded to ThingSpeak!");
+    } else {
+        Serial.print("Error uploading to ThingSpeak. HTTP Error code: ");
+        Serial.println(status);
+    }
+    Serial.println("-------------------");
+    client.stop();
 }
 
 /**
@@ -184,7 +204,7 @@ void uploadToThingSpeak() {
  *        /api/commands GET : Returns current command list 
  *        And includes sending a 404 in case of no endpoint.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
 void setupRoutes() {
   server.on("/", HTTP_GET, handleDashboard); // Dashboard
@@ -205,7 +225,7 @@ void setupRoutes() {
  * @param cmd Defines the command as a string for the sensor to interpret.
  * @param parameters Defines a JSON object of parameters for the command to execute on.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  * 
  */
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
@@ -247,7 +267,7 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
  *        - Attempt to connect to the WiFi network
  *        - Sets up the routes and webserver
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
 void setup() {
   Serial.begin(115200);
@@ -286,12 +306,17 @@ void setup() {
   Serial.println("HTTP server started");
   digitalWrite(redLED, LOW);
   digitalWrite(greenLED, HIGH);
+
+  ThingSpeak.begin(client);
+  Serial.println("ThingSpeak initialized.");
+
+  Serial.println("-------------------");
 }
 
 /**
  * @brief Here user defined actions can be set up when certain sensor conditions are met.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  * 
  */
 void evaluateRules() {
@@ -303,6 +328,23 @@ void evaluateRules() {
       parameters["color"] = "red";
       addCommand(2, "flash", parameters);  // Sensor ID, Command, Parameters
     }
+
+    if (i == 2 && sensors[i].type == "Temperature") {
+      if (millis() - sensors[i].lastSeen < 100) {
+        float reading = sensors[i].lastData["tempRead"].as<float>();
+        float rounded_value;
+        rounded_value = roundf(reading*100) / 100;
+        ThingSpeak.setField(1, rounded_value);
+        ThingSpeak.setField(2, sensors[i].lastData["fanDuty"].as<int>());
+        ThingSpeak.setField(3, sensors[i].lastData["ledDuty"].as<int>());
+      }
+    }
+
+    if (i == 1 && sensors[i].type == "security") {
+      if (millis() - sensors[i].lastSeen < 100) {
+        ThingSpeak.setField(4, sensors[i].lastData["isLocked"].as<bool>());
+      }
+    }
   }
   testVariable = false; // Used for internal testing purposes. 
 }
@@ -311,11 +353,15 @@ void evaluateRules() {
  * @brief The Arduino loop listens for incoming HTTP requests and evaluates the rules/user defined actions.
  *        Once ThingSpeak is set up, it uploads its data occasionally.
  * 
- * @author Victor Kappelhøj Anderse (s244824@dtu.dk) 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
 void loop() {
   server.handleClient();
-  evaluateRules();
+
+  if (millis() - lastEvaluation > evaluationInterval) {
+    evaluateRules();
+    lastEvaluation = millis();
+  }
 
   // Only periodically uploads to ThingSpeak, such that it doesn't interfere with incoming data
   if (millis() - lastThingSpeakUpload > thingSpeakInterval) {
