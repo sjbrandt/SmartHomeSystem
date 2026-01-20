@@ -1,9 +1,5 @@
-#include <IRremote.hpp>
-
 const uint8_t sPin = D4;
 const uint8_t ledPin = D2;
-const uint8_t remPin = D0;
-const uint32_t buttonOne = 0xF30CFF00;
 int val;
 unsigned long timer = 0;
 const unsigned long timeout = 5000;
@@ -17,13 +13,12 @@ void setup() {
   Serial.begin(115200);
   pinMode(sPin, INPUT);
   pinMode(ledPin, OUTPUT);
-  IrReceiver.begin(remPin, ENABLE_LED_FEEDBACK);
   // request isLocked?
 }
 
 void loop() {
   if (isLocked == 0) {
-    Serial.println("Warn HUB of motion")
+    Serial.println("Warn HUB of motion");
   } else {
     remoteState();
     motionSensor();
@@ -31,24 +26,8 @@ void loop() {
 }
 
 void remoteState() {
-  if (IrReceiver.decode()) {
-    uint32_t receivedCode = IrReceiver.decodedIRData.decodedRawData;
-    if (receivedCode == buttonOne && receivedCode != 0) {
-      systemState = !systemState;
-      if (systemState == 0) {
-        Serial.println("Motion sensor OFF!");
-      }
-      if (systemState == 1) {
-        Serial.println("Motion sensor ON!");
-      }
-    }
-    IrReceiver.resume();
-  }
-
-  if (!systemState) {
-    digitalWrite(ledPin, LOW);
-    return;
-  }
+  motionSensor();
+  delay(200);
 }
 
 void motionSensor() {
