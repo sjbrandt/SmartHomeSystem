@@ -440,7 +440,6 @@ void loop() {
           jsonSend();
 
           printLockStatus(isLocked);
-          sendSensorData(1, "Keypad", "Locked", (float) isLocked);  // not known whether works yet
           delay(READ_milliSECONDS);
           granted = true;
         } else {
