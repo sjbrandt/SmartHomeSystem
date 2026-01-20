@@ -32,7 +32,7 @@ const char* APIKey = "Q3X1R9DC29KFQM22";
 const char* thingSpeakServer = "api.thingspeak.com";
 
 unsigned long lastThingSpeakUpload = 0;
-const unsigned long thingSpeakInterval = 20UL * 1000UL; // Desired seconds * 1000 milliseconds
+const unsigned long thingSpeakInterval = 20UL * 1000UL;  // Desired seconds * 1000 milliseconds
 
 unsigned long lastEvaluation = 0;
 const unsigned long evaluationInterval = 250;
@@ -57,7 +57,7 @@ struct SensorData {
   unsigned long lastSeen;
 };
 
-SensorData sensors[MAXSENSORS]; // Allocates memory for MAXSENSORS number of sensors
+SensorData sensors[MAXSENSORS];  // Allocates memory for MAXSENSORS number of sensors
 
 struct Command {
   int targetID;
@@ -67,7 +67,7 @@ struct Command {
   int lastID;
 };
 
-Command commands[MAXSENSORS]; // Allocates memory for MAXSENSORS number of commands
+Command commands[MAXSENSORS];  // Allocates memory for MAXSENSORS number of commands
 
 // Opens a webserver on port 80
 ESP8266WebServer server(80);
@@ -186,15 +186,17 @@ void handleCommands() {
  * 
  */
 void uploadToThingSpeak() {
-    int status = ThingSpeak.writeFields(channelID, APIKey);
-    if (status == 200) {
-        Serial.println("Data successfully uploaded to ThingSpeak!");
-    } else {
-        Serial.print("Error uploading to ThingSpeak. HTTP Error code: ");
-        Serial.println(status);
-    }
-    Serial.println("-------------------");
-    client.stop();
+  int status = ThingSpeak.writeFields(channelID, APIKey);
+  if (status == 200) {
+    Serial.println("Data successfully uploaded to ThingSpeak!");
+  } else if (status == -210) {
+    Serial.println("No data to upload");
+  } else {
+    Serial.print("Error uploading to ThingSpeak. HTTP Error code: ");
+    Serial.println(status);
+  }
+  Serial.println("-------------------");
+  client.stop();
 }
 
 /**
@@ -207,14 +209,14 @@ void uploadToThingSpeak() {
  * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
 void setupRoutes() {
-  server.on("/", HTTP_GET, handleDashboard); // Dashboard
+  server.on("/", HTTP_GET, handleDashboard);  // Dashboard
 
   // API endpoints
-  server.on("/api/sensor", HTTP_POST, handleSensorPost); // Sensor data
+  server.on("/api/sensor", HTTP_POST, handleSensorPost);  // Sensor data
   //server.on("/api/state", HTTP_GET, handleStateGet); //currently unused
-  server.on("/api/commands", HTTP_GET, handleCommands); // Serves commands
+  server.on("/api/commands", HTTP_GET, handleCommands);  // Serves commands
   server.onNotFound([]() {
-    server.send(404, "text/plain", "Not found"); // 404 Fallback
+    server.send(404, "text/plain", "Not found");  // 404 Fallback
   });
 }
 
@@ -233,9 +235,7 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
 
   // Checks for duplicates
   for (int j = 0; j < MAXSENSORS; j++) {
-    if (targetID == commands[j].targetID && 
-        cmd == commands[j].cmd && 
-        parameters.as<JsonVariant>() == commands[j].parameters.as<JsonVariant>()) {
+    if (targetID == commands[j].targetID && cmd == commands[j].cmd && parameters.as<JsonVariant>() == commands[j].parameters.as<JsonVariant>()) {
       return;
     }
   }
@@ -329,24 +329,34 @@ void evaluateRules() {
       addCommand(2, "flash", parameters);  // Sensor ID, Command, Parameters
     }
 
+    if (i == 1 && sensors[i].type == "security") {
+      if (millis() - sensors[i].lastSeen < 100) {
+        ThingSpeak.setField(4, sensors[i].lastData["isLocked"].as<bool>());
+      }
+      
+      JsonDocument parameters;
+      parameters["state"] = sensors[i].lastData["isLocked"].as<bool>();
+      addCommand(3, "checkState", parameters);
+    }
+
     if (i == 2 && sensors[i].type == "Temperature") {
       if (millis() - sensors[i].lastSeen < 100) {
         float reading = sensors[i].lastData["tempRead"].as<float>();
         float rounded_value;
-        rounded_value = roundf(reading*100) / 100;
+        rounded_value = roundf(reading * 100) / 100;
         ThingSpeak.setField(1, rounded_value);
         ThingSpeak.setField(2, sensors[i].lastData["fanDuty"].as<int>());
         ThingSpeak.setField(3, sensors[i].lastData["ledDuty"].as<int>());
       }
     }
 
-    if (i == 1 && sensors[i].type == "security") {
+    if (i == 4 && sensors[i].type == "flameDetector") {
       if (millis() - sensors[i].lastSeen < 100) {
-        ThingSpeak.setField(4, sensors[i].lastData["isLocked"].as<bool>());
+        ThingSpeak.setField(5, sensors[i].lastData["isFire"].as<bool>());
       }
     }
   }
-  testVariable = false; // Used for internal testing purposes. 
+  testVariable = false;  // Used for internal testing purposes.
 }
 
 /**
