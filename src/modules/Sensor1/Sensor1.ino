@@ -1,45 +1,26 @@
-#include <IRremote.hpp>
+#include "sender_comm.h"
 
 const uint8_t flamePin1 = A0;
-const uint8_t aPin = 10;
-const uint8_t remPin = 8;
-const uint32_t buttonTwo = 0xE718FF00;
-bool systemState = HIGH;
-int fireCounter = 0;
+const uint8_t ledPin = D2;
+const uint8_t sensorID = 4;
+uint8_t fireCounter = 0;
 
 void setup() {
   Serial.begin(115200);
   pinMode(flamePin1, INPUT);
-  pinMode(aPin, OUTPUT);
-  IrReceiver.begin(remPin, ENABLE_LED_FEEDBACK);
+  pinMode(ledPin, OUTPUT);
+  initWifi();
 }
 
 void loop() {
-  if (IrReceiver.decode()) {
-    uint32_t receivedCode = IrReceiver.decodedIRData.decodedRawData;
-    if (receivedCode == buttonTwo && receivedCode != 0) {
-      systemState = !systemState;
-      if (systemState == 0) {
-        Serial.println("Flame sensor OFF!");
-      } else {
-        Serial.println("Flame sensor ON!");
-      }
-    }
-    IrReceiver.resume();
-  }
-
-  if (!systemState) {
-    return;
-  }
-
   sensor1();
   delay(300);
 }
 
 void blink() {
-  digitalWrite(aPin, HIGH);
+  digitalWrite(ledPin, HIGH);
   delay(300);
-  digitalWrite(aPin, LOW);
+  digitalWrite(ledPin, LOW);
 }
 
 void sensor1() {
@@ -50,6 +31,16 @@ void sensor1() {
     blink();
     fireCounter++;
     if (fireCounter >= 5) {
+      // ------------ SENDING DATA ------------
+      // Initialize a json document with sensor ID and sensor type.
+      // This is so you can send different data points at once. New data of the same type should be in a new JSON.
+      jsonInit(sensorID, "flameDetector");
+
+      // add a data point of type bool
+      jsonAddBool("isFire", true);
+
+      // send the JSON document with the data and all!
+      jsonSend();
       Serial.print("Warn HUB!");
     }
   } else {
