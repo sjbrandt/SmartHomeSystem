@@ -265,9 +265,15 @@ void setup() {
   // Attempts to connect to the WiFi (Red LED turns on)
   Serial.println("Connecting");
   digitalWrite(redLED, HIGH);
+  int time_to_connect = millis();
   while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
+    // If connecting takes more than 15 seconds, try again by restarting everything
+    if (millis() - time_to_connect > 15000) {
+      Serial.println("Couldn't connect, restarting ...");
+      ESP.reset();
+    }
   }
 
   // When successful, IP is printed, routes are set up and the webserver is started
