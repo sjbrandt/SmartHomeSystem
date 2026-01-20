@@ -6,6 +6,8 @@
  * 
  * @brief Implementation for `sender_comm.h`, allowing for communication with the Central Hub
  *        through HTTP requests and JSON objects.
+ *
+ * @version 0.3
  */
 
 #include "sender_comm.h"
@@ -149,6 +151,7 @@ void jsonSend() {
 void sendPayload(String payload) {
   http.begin(client, "http://10.198.101.231/api/sensor");  // hub IP
   http.addHeader("Content-Type", "application/json");      // tells the HTTP server what content we're sending
+  http.setReuse(false);
 
   int httpCode = http.POST(payload);  // posts the payload, returns the post code
 
