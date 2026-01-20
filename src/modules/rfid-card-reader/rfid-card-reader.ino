@@ -1,3 +1,9 @@
+/**
+ * @file rfid-card-reader.ino
+ * @author Frederikke Biehe (s223981)
+ * @brief Deprecated file used to test RFID programming
+ */
+
 #include <SPI.h>
 #include <MFRC522.h>
 #include <LiquidCrystal_I2C.h>

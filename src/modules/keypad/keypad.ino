@@ -1,3 +1,9 @@
+/**
+ * @file keypad.ino
+ * @author Frederikke Biehe (s223981)
+ * @brief Deprecated file used to test keypad programming
+ */
+
 #include <Keypad.h>
 #include <LiquidCrystal_I2C.h>
 
