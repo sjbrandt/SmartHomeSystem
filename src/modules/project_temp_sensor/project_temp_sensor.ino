@@ -1,21 +1,31 @@
 #include <Arduino.h>
 
+// communication
+#include "sender_comm.h"
+#include <ArduinoJson.h>  // ArduinoJson by Benoit. Needs to be installed through the Library Manager
+
 // pins
 const int LED_PIN = D3;
 const int FAN_PIN = D7;
 
+const float T_DESIRED = 25.0;
+
 // temp ranges used for fan pwm logic
 // Fan range
-const float T_MIN = 26.0;   // fan starts here
-const float T_MAX = 35.0;   // full speed here
+const float T_MIN = T_DESIRED + 3.0;   // fan starts here
+const float T_MAX = T_DESIRED + 10.0;   // full speed here
 
 // temp ranges used for LED pwm
-const float LED_COLD = 15.0; // full bright at/below this
-const float LED_OFF  = 25.0; // off at/above this
+const float LED_COLD = T_DESIRED - 10.0; // full bright at/below this
+const float LED_OFF  = T_DESIRED - 1.0; // off at/above this
 
 // global variables used
 float simOffsetC = 0.0;
 float prevTempSample = 0.0;
+
+// used for communication
+const int sensorID = 2;  // temp module ID is 2, every module has its own ID
+//int oldCommandID = -1;
 
 // function for reading sensor
 float readTemp() {
@@ -59,12 +69,11 @@ int computeLedPWM(float tempSample) {
     pwm = 255;                     // full bright/heating
   } 
   else if (tempSample < LED_OFF) {
-    // linear fade: 15C -> 255, 25C -> 0
     pwm = (int)((LED_OFF - tempSample) * 255.0 / (LED_OFF - LED_COLD));
     pwm = constrain(pwm, 0, 255);
   } 
   else {
-    pwm = 0; // off above 25C
+    pwm = 0; // off above desired temp
   }
   return pwm;
 }
@@ -77,11 +86,13 @@ void setup() {
   delay(50);
   Serial.println();
   Serial.println("Temperature module started.");
+
+  initWifi(); // used for initializing wifi communication
 }
 
 void loop() {
 
-  //Read temperature + apply manual offset
+  //Read temperature
   float tempRead = readTemp() - 5.0;
   readSerialOffset();
   tempRead += simOffsetC;
@@ -110,6 +121,14 @@ void loop() {
   Serial.print("% | LED duty: ");
   Serial.print(ledDuty);
   Serial.println("%");
+
+  // communicate
+  jsonInit(sensorID, "Temperature");
+  jsonAddFloat("tempRead", tempRead);
+  jsonAddFloat("fanDuty", fanDuty);
+  jsonAddFloat("ledDuty", ledDuty);
+  jsonSend(); // send data
+
 
   // save prev sample
   prevTempSample = tempSample;
