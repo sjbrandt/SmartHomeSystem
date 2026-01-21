@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    int pinNumber;      /**< The LED pin */
+    int pinNumber;      /**< The LED pin */ //pinnumber test text
     int blinkSpeed;     /**< The selected blink speed */
 };
 
