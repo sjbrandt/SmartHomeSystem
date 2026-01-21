@@ -77,4 +77,8 @@ void sensor1() {
   } else {
     fireCounter = 0;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 2b81cf444d2a0ef2223fe23be3dc964d631947aa
