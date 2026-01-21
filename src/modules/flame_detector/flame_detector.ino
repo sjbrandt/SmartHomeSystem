@@ -1,5 +1,5 @@
 /**
- * @file Sensor1.ino
+ * @file flame_detector.ino
  * @author Yun Jie Si Høj (s224179@dtu.dk)
  * @brief Flame detector sensor module code
  * @version 0.1
@@ -71,14 +71,10 @@ void sensor1() {
       jsonSend();
       Serial.print("Warn HUB!");
     }
-  /**
+    /**
    * @brief Else reset the fireCounter.
    */
   } else {
     fireCounter = 0;
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 2b81cf444d2a0ef2223fe23be3dc964d631947aa
