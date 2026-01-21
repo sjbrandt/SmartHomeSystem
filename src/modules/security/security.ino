@@ -7,12 +7,13 @@
  * Sensors:
  * - Keypad
  * - RFID reader and card(s)
+ *
  * Actuators:
  * - LCD screen
  *
  * @author Frederikke Biehe (s223981)
  * @author Sofus Brandt (s214972)
- * @date 2026
+ * @date Januaray 2026
  */
 
 #include <SPI.h>
