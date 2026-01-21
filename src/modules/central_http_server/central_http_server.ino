@@ -15,11 +15,25 @@ const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html><head><title>Smart Home System Dashboard</title></head>
 <body>
+<center>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Indoor+Temperature&type=line"></iframe>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Indoor+Humidity&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207936"></iframe>
 <br>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=IR+Sensor&type=line"></iframe>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/4?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Proximity+Sensor&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Fan+Power+%28PWM%29&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207941"></iframe>
+<br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Heat+power+%28PWM%29&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207942"></iframe>
+<br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/4?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Door+locked&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207943"></iframe>
+<br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/5?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Fire+alarm&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207944"></iframe>
+<br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/6?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Intruder%3F&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207946"></iframe>
+</center>
 </body></html>
 )rawliteral";
 
@@ -31,11 +45,11 @@ unsigned long channelID = 3229693;
 const char* APIKey = "Q3X1R9DC29KFQM22";
 const char* thingSpeakServer = "api.thingspeak.com";
 
-unsigned long lastThingSpeakUpload = 0;
 const unsigned long thingSpeakInterval = 20UL * 1000UL;  // Desired seconds * 1000 milliseconds
 
-unsigned long lastEvaluation = 0;
 const unsigned long evaluationInterval = 250;
+
+const unsigned long inactivityInterval = 60000;
 
 bool testVariable = true;
 
@@ -46,7 +60,9 @@ WiFiClient client;
 
 // -------------------- Global variabes ------------------------
 int currentCommandSlot = 0;
-
+unsigned long lastThingSpeakUpload = 0;
+unsigned long lastEvaluation = 0;
+unsigned long lastInactivityCheck = 0;
 #define MAXSENSORS 10
 
 // -------------------- Structs ------------------------
@@ -374,11 +390,18 @@ void evaluateRules() {
       if (millis() - sensors[i].lastSeen < 100) {
         ThingSpeak.setField(6, sensors[i].lastData["isIntruder"].as<bool>());
       }
+      if ((millis() - sensors[i].lastSeen > inactivityInterval) && (millis() - lastInactivityCheck > inactivityInterval))  {
+        ThingSpeak.setField(6, false);
+      }
     }
     
     if (i == 4 && sensors[i].type == "flameDetector") {
       if (millis() - sensors[i].lastSeen < 100) {
         ThingSpeak.setField(5, sensors[i].lastData["isFire"].as<bool>());
+      }
+      if ((millis() - sensors[i].lastSeen > inactivityInterval) && (millis() - lastInactivityCheck > inactivityInterval)) {
+        ThingSpeak.setField(5, false);
+        lastInactivityCheck = millis();
       }
     }
   }
