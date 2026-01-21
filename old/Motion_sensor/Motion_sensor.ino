@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include <IRremote.hpp>
 
 const uint8_t sPin = 10;
@@ -11,11 +12,17 @@ const unsigned long timeout = 5000;
 bool ledState = LOW;
 bool prevLedState = LOW;
 bool systemState = HIGH;
+=======
+int sPin = 10;
+int ledPin = 12;
+bool val;
+>>>>>>> light
 
 void setup() {
   Serial.begin(115200);
   pinMode(sPin, INPUT);
   pinMode(ledPin, OUTPUT);
+<<<<<<< HEAD
   IrReceiver.begin(rPin, ENABLE_LED_FEEDBACK);
 }
 
@@ -62,3 +69,18 @@ void loop() {
     prevLedState = ledState;
   }
 }
+=======
+}
+
+void loop() {
+  int val = digitalRead(sPin);
+
+  if (val == HIGH) {
+    digitalWrite(ledPin, HIGH);
+    Serial.println("Motion detected!");
+    delay(1000);
+  } else {
+    digitalWrite(ledPin, LOW);
+  }
+}
+>>>>>>> light
