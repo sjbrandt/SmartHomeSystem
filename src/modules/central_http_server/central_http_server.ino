@@ -16,21 +16,19 @@ const char DASHBOARD_HTML[] PROGMEM = R"rawliteral(
 <html><head><title>Smart Home System Dashboard</title></head>
 <body>
 <center>
+<h1>Smart Home System Dashboard</h1>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Indoor+Temperature&type=line"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207936"></iframe>
-<br>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Fan+Power+%28PWM%29&type=line"></iframe>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207941"></iframe>
-<br>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Heat+power+%28PWM%29&type=line"></iframe>
-<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207942"></iframe>
-<br>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/4?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Door+locked&type=line"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207943"></iframe>
 <br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Fan+Power+%28PWM%29&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207941"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/5?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Fire+alarm&type=line"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207944"></iframe>
 <br>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Heat+power+%28PWM%29&type=line"></iframe>
+<iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207942"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/charts/6?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Intruder%3F&type=line"></iframe>
 <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/3229693/widgets/1207946"></iframe>
 </center>
@@ -49,7 +47,7 @@ const unsigned long thingSpeakInterval = 20 * 1000;  // Desired seconds * 1000 m
 
 const unsigned long evaluationInterval = 250;
 
-const unsigned long inactivityInterval = 60000;
+const unsigned long inactivityInterval = 60 * 1000;
 
 bool testVariable = true;
 
@@ -200,7 +198,7 @@ void handleCommands() {
  *        The writeFields() function sends all new data set with
  *        setField() to ThingSpeak, sort of like a queue.
  * 
- * @brief ThingSpeak has a cooldown of one transmission every 15 seconds
+ *        ThingSpeak has a cooldown of one transmission every 15 seconds
  * 
  * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  * 
