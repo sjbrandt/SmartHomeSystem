@@ -45,7 +45,7 @@ unsigned long channelID = 3229693;
 const char* APIKey = "Q3X1R9DC29KFQM22";
 const char* thingSpeakServer = "api.thingspeak.com";
 
-const unsigned long thingSpeakInterval = 20UL * 1000UL;  // Desired seconds * 1000 milliseconds
+const unsigned long thingSpeakInterval = 20 * 1000;  // Desired seconds * 1000 milliseconds
 
 const unsigned long evaluationInterval = 250;
 
@@ -196,9 +196,13 @@ void handleCommands() {
 }
 
 /**
- * @brief Handles sending select sensor data to ThingSpeak to display graphically.
+ * @brief Handles sending data to ThingSpeak to display graphically.
+ *        The writeFields() function sends all new data set with
+ *        setField() to ThingSpeak, sort of like a queue.
  * 
- *  @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
+ * @brief ThingSpeak has a cooldown of one transmission every 15 seconds
+ * 
+ * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  * 
  */
 void uploadToThingSpeak() {
@@ -247,14 +251,7 @@ void setupRoutes() {
  * 
  */
 void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
-  /*
-  int i = currentCommandSlot;
-  // Checks for duplicates
-  for (int j = 0; j < MAXSENSORS; j++) {
-    if (targetID == commands[j].targetID && cmd == commands[j].cmd && parameters.as<JsonVariant>() == commands[j].parameters.as<JsonVariant>()) {
-      return;
-    }
-  }*/
+  // Checks to see if a command for the targetID already exists; replaces it if it does
   for (int i = 0; i < MAXSENSORS; i++) {
     if (commands[i].targetID == targetID) {
       // Assigns the values to the command
@@ -271,6 +268,8 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
       return;
     }
   }
+
+  // Finds the first command in the command list that is unassigned, and assigns the command there
   for (int i = 0; i < MAXSENSORS; i++) {
     if (commands[i].targetID == 0) {
       // Assigns the values to the command
@@ -287,12 +286,6 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
       return;
     }
   }
-  /*
-  // Increments and rolls over the counter to write the next command
-  currentCommandSlot++;
-  if (currentCommandSlot >= MAXSENSORS) {
-    currentCommandSlot = 0;
-  }*/
 }
 
 /**
@@ -302,6 +295,7 @@ void addCommand(int targetID, const String& cmd, JsonDocument& parameters) {
  *        - Initializes the WiFi
  *        - Attempt to connect to the WiFi network
  *        - Sets up the routes and webserver
+ *        - Initializes ThingSpeak client
  * 
  * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
@@ -343,6 +337,7 @@ void setup() {
   digitalWrite(redLED, LOW);
   digitalWrite(greenLED, HIGH);
 
+  // Initializes ThingSpeak client
   ThingSpeak.begin(client);
   Serial.println("ThingSpeak initialized.");
 
@@ -358,28 +353,36 @@ void setup() {
 void evaluateRules() {
   // Iterates through all sensors
   for (int i = 0; i < MAXSENSORS; i++) {
+    // First example command. Ultimately unused, but stays to show how multiple commands can be set up
     if ((sensors[i].type == "fire alarm" && sensors[i].lastData["alarm"]) || testVariable) {
       JsonDocument parameters;
       parameters["interval"] = 1;
       parameters["color"] = "red";
-      addCommand(2, "flash", parameters);  // Sensor ID, Command, Parameters
+      addCommand(2, "flash", parameters); // Sensor ID, Command, Parameters
     }
 
+    // If the sensor ID is 1 and it's a security type
     if (i == 1 && sensors[i].type == "security") {
-      if (millis() - sensors[i].lastSeen < 100) {
+      // Checks whether new data has been posted from this sensor in the last 250ms
+      // This ensures no duplicate data
+      if (millis() - sensors[i].lastSeen < 250) {  
+        // Sets the 4th data field in ThingSpeak to whatever state of the sensor was during its last transmission 
         ThingSpeak.setField(4, sensors[i].lastData["isLocked"].as<bool>());
       }
 
+      // Sensor with ID 3 wants to know the state of the sensor, so a command is added
       JsonDocument parameters;
       parameters["state"] = sensors[i].lastData["isLocked"].as<bool>();
       addCommand(3, "checkState", parameters);
     }
 
     if (i == 2 && sensors[i].type == "Temperature") {
-      if (millis() - sensors[i].lastSeen < 100) {
+      if (millis() - sensors[i].lastSeen < 250) {
+        // Getting the temperature reading down to 2 decimals
         float reading = sensors[i].lastData["tempRead"].as<float>();
         float rounded_value;
         rounded_value = roundf(reading * 100) / 100;
+
         ThingSpeak.setField(1, rounded_value);
         ThingSpeak.setField(2, sensors[i].lastData["fanDuty"].as<int>());
         ThingSpeak.setField(3, sensors[i].lastData["ledDuty"].as<int>());
@@ -387,16 +390,18 @@ void evaluateRules() {
     }
 
     if (i == 3 && sensors[i].type == "motionsensor") {
-      if (millis() - sensors[i].lastSeen < 100) {
+      if (millis() - sensors[i].lastSeen < 250) {
         ThingSpeak.setField(6, sensors[i].lastData["isIntruder"].as<bool>());
       }
+      // Checks whether no active alarm state has been received in the last (default) 60 seconds
+      // If not, assume the alarm is off and send that to ThingSpeak
       if ((millis() - sensors[i].lastSeen > inactivityInterval) && (millis() - lastInactivityCheck > inactivityInterval))  {
         ThingSpeak.setField(6, false);
       }
     }
     
     if (i == 4 && sensors[i].type == "flameDetector") {
-      if (millis() - sensors[i].lastSeen < 100) {
+      if (millis() - sensors[i].lastSeen < 250) {
         ThingSpeak.setField(5, sensors[i].lastData["isFire"].as<bool>());
       }
       if ((millis() - sensors[i].lastSeen > inactivityInterval) && (millis() - lastInactivityCheck > inactivityInterval)) {
@@ -405,12 +410,15 @@ void evaluateRules() {
       }
     }
   }
-  testVariable = false;  // Used for internal testing purposes.
+  // Used for internal testing purposes, ran the assignment of the first command once
+  testVariable = false; 
 }
 
 /**
  * @brief The Arduino loop listens for incoming HTTP requests and evaluates the rules/user defined actions.
- *        Once ThingSpeak is set up, it uploads its data occasionally.
+ *        Runs the functions evaluateRules() and uploadToThingSpeak() periodically. The interval can be
+ *        configured in the configuration variables, but is default 20 seconds for uploadToThingSpeak and 
+ *        250ms for evaluateRules().
  * 
  * @author Victor Kappelhøj Andersen (s244824@dtu.dk) 
  */
