@@ -67,8 +67,7 @@ void fetch_commands() {
     if (targetID == mySensorID) {
       if (lastCommandID == entry["commandID"]) {
         return;
-      }
-      else {
+      } else {
         lastCommandID = entry["commandID"];
         handle_command(entry["cmd"], entry["parameters"]);
       }
