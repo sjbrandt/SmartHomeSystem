@@ -1,23 +1,38 @@
+/**
+ * @file project_temp_sensor.ino
+ * @brief Sketch for the temperature module
+ *
+ * This sketch is the code to be run on the ESP8266 controlling the temperature module.
+ *
+ * Sensors:
+ * - LM35-DZ Analog temperature sensor
+ *
+ * Actuators:
+ * - Red LED
+ * - DC Motor/Fan
+ *
+ *
+ * @author Deniz Coskun (s225730)
+ * @date Januaray 2026
+ */
+
 #include <Arduino.h>
-
-// communication
+#include <ArduinoJson.h>
 #include "sender_comm.h"
-#include <ArduinoJson.h>  // ArduinoJson by Benoit. Needs to be installed through the Library Manager
 
-// pins
+// USER CONFIG
 const int LED_PIN = D3;
 const int FAN_PIN = D7;
 
-const float T_DESIRED = 25.0;
+const float T_DESIRED = 27.0;
 
 // temp ranges used for fan pwm logic
-// Fan range
 const float T_MIN = T_DESIRED + 3.0;   // fan starts here
 const float T_MAX = T_DESIRED + 10.0;   // full speed here
 
 // temp ranges used for LED pwm
 const float LED_COLD = T_DESIRED - 10.0; // full bright at/below this
-const float LED_OFF  = T_DESIRED - 1.0; // off at/above this
+const float LED_OFF  = T_DESIRED - 3.0; // off at/above this
 
 // global variables used
 float simOffsetC = 0.0;
@@ -28,6 +43,13 @@ const int sensorID = 2;  // temp module ID is 2, every module has its own ID
 //int oldCommandID = -1;
 
 // function for reading sensor
+/**
+ * @brief Reads temperature from A0 pin on ESP8266
+ * 
+ * @return float temp
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 float readTemp() {
   int raw = analogRead(A0);
   float voltage = raw * (3.3 / 1023.0);
@@ -36,6 +58,11 @@ float readTemp() {
 }
 
 // function for adding temperature through serial monitor, used for testing purposes
+/**
+ * @brief Adds offset to temperature through serial monitor, mainly used for testing and showing LED/FAN state in different temperatures
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 void readSerialOffset() {
   if (Serial.available() > 0) {
     char c = Serial.read();
@@ -46,6 +73,14 @@ void readSerialOffset() {
 }
 
 // fan pwm
+/**
+ * @brief Calculates fan PWM based on temperature.
+ * 
+ * @param tempSample Current temperature
+ * @return pwm
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 int computeFanPWM(float tempSample) {
   int pwm = 0;
 
@@ -62,6 +97,14 @@ int computeFanPWM(float tempSample) {
 }
 
 // led PWM
+/**
+ * @brief Calculates LED PWM based on temperature.
+ * 
+ * @param tempSample Current temperature
+ * @return pwm
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 int computeLedPWM(float tempSample) {
   int pwm = 0;
 
@@ -78,6 +121,12 @@ int computeLedPWM(float tempSample) {
   return pwm;
 }
 
+// -------------------- Setup / Loop -------------------
+/**
+ * @brief Runs setup functions when the program is first loaded onto the MCU.
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 void setup() {
   pinMode(FAN_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -90,10 +139,15 @@ void setup() {
   initWifi(); // used for initializing wifi communication
 }
 
+/**
+ * @brief Runs the main functionality in an infinite loop.
+ * 
+ * @author Deniz Coskun (s225730)
+ */
 void loop() {
 
   //Read temperature
-  float tempRead = readTemp() - 5.0;
+  float tempRead = readTemp();
   readSerialOffset();
   tempRead += simOffsetC;
 
@@ -121,8 +175,9 @@ void loop() {
   Serial.print("% | LED duty: ");
   Serial.print(ledDuty);
   Serial.println("%");
+  
 
-  // communicate
+  // // communicate
   jsonInit(sensorID, "Temperature");
   jsonAddFloat("tempRead", tempRead);
   jsonAddFloat("fanDuty", fanDuty);
@@ -133,5 +188,5 @@ void loop() {
   // save prev sample
   prevTempSample = tempSample;
 
-  delay(500);
+  delay(5000);
 }
