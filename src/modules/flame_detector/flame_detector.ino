@@ -1,6 +1,6 @@
 /**
  * @file flame_detector.ino
- * @author Yun Jie Si Høj (s224179@dtu.dk)
+ * @author Yun Jie Si Høj (s224179@dtu.dk) and Victor Kappelhøj Andersen (s244824@dtu.dk)
  * @brief Flame detector sensor module code
  * @version 0.1
  * @date 2026-01-21
@@ -47,7 +47,7 @@ void blink() {
   digitalWrite(ledPin, LOW);
 }
 /**
- * @brief Function to read flame sensor data and send alert to the HUB if fire is detected.
+ * @brief Function to read flame sensor data and send alert to the HUB if fire is detected more than 5 times in a row.
  * All the json handling is done in sender_comm.h.
  * @author Yun Jie Si Høj
  */
